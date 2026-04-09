@@ -1,0 +1,233 @@
+---
+# ============================================================
+# Post-Deployment Playbook
+# ============================================================
+# This playbook configures OpenStack after Kolla-Ansible deploy
+# - Creates networks, routers, images, flavors, security groups
+# - Sets up demo project and user
+# ============================================================
+- name: Post-Deploy OpenStack Configuration
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    os_cloud: "kolla-admin"
+    external_network_name: "external-net"
+    external_subnet_cidr: "192.168.56.0/24"
+    external_pool_start: "192.168.56.200"
+    external_pool_end: "192.168.56.240"
+    external_gateway: "192.168.56.1"
+    internal_network_name: "internal-net"
+    internal_subnet_cidr: "10.0.0.0/24"
+    internal_dns: "8.8.8.8"
+    router_name: "main-router"
+    demo_project: "demo"
+    demo_user: "demo"
+    demo_password: "demo2026"
+    cirros_image_url: "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img"
+
+  tasks:
+    # ---- PROJECT & USER ----
+    - name: Create demo project
+      openstack.cloud.project:
+        cloud: "{{ os_cloud }}"
+        name: "{{ demo_project }}"
+        description: "Demo Project for OpenStack Private Cloud"
+        domain_id: default
+        state: present
+
+    - name: Create demo user
+      openstack.cloud.identity_user:
+        cloud: "{{ os_cloud }}"
+        name: "{{ demo_user }}"
+        password: "{{ demo_password }}"
+        default_project: "{{ demo_project }}"
+        domain: default
+        state: present
+
+    - name: Grant member role to demo user
+      openstack.cloud.role_assignment:
+        cloud: "{{ os_cloud }}"
+        user: "{{ demo_user }}"
+        project: "{{ demo_project }}"
+        role: member
+        state: present
+
+    # ---- IMAGES ----
+    - name: Download CirrOS image
+      ansible.builtin.get_url:
+        url: "{{ cirros_image_url }}"
+        dest: /tmp/cirros-0.6.2-x86_64-disk.img
+        mode: '0644'
+
+    - name: Upload CirrOS image to Glance
+      openstack.cloud.image:
+        cloud: "{{ os_cloud }}"
+        name: "CirrOS-0.6.2"
+        filename: /tmp/cirros-0.6.2-x86_64-disk.img
+        disk_format: qcow2
+        container_format: bare
+        is_public: true
+        state: present
+
+    # ---- FLAVORS ----
+    - name: Create m1.tiny flavor
+      openstack.cloud.compute_flavor:
+        cloud: "{{ os_cloud }}"
+        name: "m1.tiny"
+        ram: 512
+        vcpus: 1
+        disk: 1
+        state: present
+
+    - name: Create m1.small flavor
+      openstack.cloud.compute_flavor:
+        cloud: "{{ os_cloud }}"
+        name: "m1.small"
+        ram: 2048
+        vcpus: 1
+        disk: 20
+        state: present
+
+    - name: Create m1.medium flavor
+      openstack.cloud.compute_flavor:
+        cloud: "{{ os_cloud }}"
+        name: "m1.medium"
+        ram: 4096
+        vcpus: 2
+        disk: 40
+        state: present
+
+    # ---- NETWORKING ----
+    - name: Create external network
+      openstack.cloud.network:
+        cloud: "{{ os_cloud }}"
+        name: "{{ external_network_name }}"
+        external: true
+        provider_network_type: flat
+        provider_physical_network: physnet1
+        state: present
+
+    - name: Create external subnet
+      openstack.cloud.subnet:
+        cloud: "{{ os_cloud }}"
+        name: "external-subnet"
+        network_name: "{{ external_network_name }}"
+        cidr: "{{ external_subnet_cidr }}"
+        allocation_pool_start: "{{ external_pool_start }}"
+        allocation_pool_end: "{{ external_pool_end }}"
+        gateway_ip: "{{ external_gateway }}"
+        enable_dhcp: false
+        state: present
+
+    - name: Create internal network
+      openstack.cloud.network:
+        cloud: "{{ os_cloud }}"
+        name: "{{ internal_network_name }}"
+        state: present
+
+    - name: Create internal subnet
+      openstack.cloud.subnet:
+        cloud: "{{ os_cloud }}"
+        name: "internal-subnet"
+        network_name: "{{ internal_network_name }}"
+        cidr: "{{ internal_subnet_cidr }}"
+        dns_nameservers:
+          - "{{ internal_dns }}"
+          - "8.8.4.4"
+        state: present
+
+    - name: Create router
+      openstack.cloud.router:
+        cloud: "{{ os_cloud }}"
+        name: "{{ router_name }}"
+        network: "{{ external_network_name }}"
+        interfaces:
+          - net: "{{ internal_network_name }}"
+            subnet: "internal-subnet"
+        state: present
+
+    # ---- SECURITY GROUPS ----
+    - name: Create web security group
+      openstack.cloud.security_group:
+        cloud: "{{ os_cloud }}"
+        name: "web-sg"
+        description: "Allow SSH, HTTP, HTTPS, ICMP"
+        state: present
+
+    - name: Allow SSH
+      openstack.cloud.security_group_rule:
+        cloud: "{{ os_cloud }}"
+        security_group: "web-sg"
+        protocol: tcp
+        port_range_min: 22
+        port_range_max: 22
+        remote_ip_prefix: "0.0.0.0/0"
+
+    - name: Allow HTTP
+      openstack.cloud.security_group_rule:
+        cloud: "{{ os_cloud }}"
+        security_group: "web-sg"
+        protocol: tcp
+        port_range_min: 80
+        port_range_max: 80
+        remote_ip_prefix: "0.0.0.0/0"
+
+    - name: Allow HTTPS
+      openstack.cloud.security_group_rule:
+        cloud: "{{ os_cloud }}"
+        security_group: "web-sg"
+        protocol: tcp
+        port_range_min: 443
+        port_range_max: 443
+        remote_ip_prefix: "0.0.0.0/0"
+
+    - name: Allow ICMP (ping)
+      openstack.cloud.security_group_rule:
+        cloud: "{{ os_cloud }}"
+        security_group: "web-sg"
+        protocol: icmp
+        remote_ip_prefix: "0.0.0.0/0"
+
+    # ---- KEYPAIR ----
+    - name: Generate SSH keypair
+      openssh_keypair:
+        path: "~/.ssh/openstack-key"
+        type: rsa
+        size: 4096
+        force: false
+      register: ssh_key
+
+    - name: Upload keypair to OpenStack
+      openstack.cloud.keypair:
+        cloud: "{{ os_cloud }}"
+        name: "default-keypair"
+        public_key_file: "~/.ssh/openstack-key.pub"
+        state: present
+
+    # ---- SUMMARY ----
+    - name: Display post-deployment summary
+      ansible.builtin.debug:
+        msg: |
+          ============================================================
+          POST-DEPLOYMENT CONFIGURATION COMPLETE ✓
+          ============================================================
+          
+          Networks:
+            - external-net ({{ external_subnet_cidr }})
+            - internal-net ({{ internal_subnet_cidr }})
+          
+          Router: {{ router_name }}
+          
+          Images: CirrOS-0.6.2
+          
+          Flavors: m1.tiny | m1.small | m1.medium
+          
+          Security Group: web-sg (SSH, HTTP, HTTPS, ICMP)
+          
+          Keypair: default-keypair
+          
+          Demo User: {{ demo_user }} / {{ demo_password }}
+          
+          ============================================================

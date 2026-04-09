@@ -1,0 +1,93 @@
+---
+# ============================================================
+# Ansible Playbook — Deploy Application on OpenStack
+# ============================================================
+# Deploys a web application stack on OpenStack instances
+# Usage: ansible-playbook playbook-deploy-app.yml
+# ============================================================
+- name: Deploy Web Application on OpenStack
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    os_cloud: "kolla-admin"
+    app_name: "demo-webapp"
+    image_name: "CirrOS-0.6.2"
+    flavor_name: "m1.small"
+    network_name: "internal-net"
+    external_network: "external-net"
+    security_group: "web-sg"
+    keypair_name: "default-keypair"
+    instance_count: 2
+
+  tasks:
+    # ---- Create Application Instances ----
+    - name: Create application instances
+      openstack.cloud.server:
+        cloud: "{{ os_cloud }}"
+        name: "{{ app_name }}-{{ item }}"
+        image: "{{ image_name }}"
+        flavor: "{{ flavor_name }}"
+        network: "{{ network_name }}"
+        security_groups:
+          - "{{ security_group }}"
+        key_name: "{{ keypair_name }}"
+        auto_ip: false
+        meta:
+          app: "{{ app_name }}"
+          role: "web-server"
+          index: "{{ item }}"
+        state: present
+        wait: true
+        timeout: 300
+      loop: "{{ range(1, instance_count + 1) | list }}"
+      register: created_servers
+
+    # ---- Assign Floating IPs ----
+    - name: Create floating IPs
+      openstack.cloud.floating_ip:
+        cloud: "{{ os_cloud }}"
+        server: "{{ app_name }}-{{ item }}"
+        network: "{{ external_network }}"
+        wait: true
+        state: present
+      loop: "{{ range(1, instance_count + 1) | list }}"
+      register: floating_ips
+
+    # ---- Create Data Volume ----
+    - name: Create shared data volume
+      openstack.cloud.volume:
+        cloud: "{{ os_cloud }}"
+        name: "{{ app_name }}-data"
+        size: 5
+        state: present
+      register: data_volume
+
+    - name: Attach volume to first instance
+      openstack.cloud.server_volume:
+        cloud: "{{ os_cloud }}"
+        server: "{{ app_name }}-1"
+        volume: "{{ app_name }}-data"
+        state: present
+
+    # ---- Summary ----
+    - name: Get server details
+      openstack.cloud.server_info:
+        cloud: "{{ os_cloud }}"
+        server: "{{ app_name }}-*"
+      register: server_info
+
+    - name: Display deployment summary
+      ansible.builtin.debug:
+        msg: |
+          ============================================================
+          Application Deployment Complete!
+          ============================================================
+          App: {{ app_name }}
+          Instances: {{ instance_count }}
+          Image: {{ image_name }}
+          Flavor: {{ flavor_name }}
+          Network: {{ network_name }}
+          Volume: {{ app_name }}-data (5GB)
+          ============================================================

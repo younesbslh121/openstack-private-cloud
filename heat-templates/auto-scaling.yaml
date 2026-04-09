@@ -1,0 +1,150 @@
+heat_template_version: 2021-04-16
+
+description: |
+  Auto-Scaling Group with Heat
+  Demonstrates automatic scaling based on CPU alarm thresholds
+  OpenStack Private Cloud — INPT
+
+parameters:
+  image:
+    type: string
+    default: CirrOS-0.6.2
+
+  flavor:
+    type: string
+    default: m1.small
+
+  key_name:
+    type: string
+    default: default-keypair
+
+  network:
+    type: string
+    default: internal-net
+
+  min_size:
+    type: number
+    label: Minimum Instances
+    default: 1
+    constraints:
+      - range: { min: 1, max: 5 }
+
+  max_size:
+    type: number
+    label: Maximum Instances
+    default: 4
+    constraints:
+      - range: { min: 2, max: 10 }
+
+  desired_capacity:
+    type: number
+    label: Desired Capacity
+    default: 2
+
+  cooldown:
+    type: number
+    label: Cooldown Period (seconds)
+    description: Minimum time between scaling actions
+    default: 60
+
+resources:
+  # ---- Security Group ----
+  asg_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: asg-security-group
+      description: Security group for auto-scaling instances
+      rules:
+        - protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+          remote_ip_prefix: "0.0.0.0/0"
+        - protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+          remote_ip_prefix: "0.0.0.0/0"
+        - protocol: icmp
+          remote_ip_prefix: "0.0.0.0/0"
+
+  # ---- Auto-Scaling Group ----
+  auto_scaling_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: { get_param: min_size }
+      max_size: { get_param: max_size }
+      desired_capacity: { get_param: desired_capacity }
+      cooldown: { get_param: cooldown }
+      resource:
+        type: OS::Nova::Server
+        properties:
+          name: asg-instance
+          image: { get_param: image }
+          flavor: { get_param: flavor }
+          key_name: { get_param: key_name }
+          networks:
+            - network: { get_param: network }
+          security_groups:
+            - { get_resource: asg_security_group }
+          metadata:
+            orchestration: heat
+            scaling_group: auto-scale
+            metering.server_group: { get_param: "OS::stack_id" }
+          user_data_format: RAW
+          user_data: |
+            #!/bin/bash
+            echo "Auto-Scaling Instance Initialized"
+            echo "Stack: OpenStack Private Cloud — INPT"
+            echo "Date: $(date)" > /tmp/asg-init.log
+
+  # ---- Scale-Up Policy ----
+  scale_up_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: { get_resource: auto_scaling_group }
+      cooldown: { get_param: cooldown }
+      scaling_adjustment: 1
+
+  # ---- Scale-Down Policy ----
+  scale_down_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: { get_resource: auto_scaling_group }
+      cooldown: { get_param: cooldown }
+      scaling_adjustment: -1
+
+outputs:
+  scale_up_url:
+    description: Webhook URL to trigger scale-up
+    value: { get_attr: [scale_up_policy, signal_url] }
+
+  scale_down_url:
+    description: Webhook URL to trigger scale-down
+    value: { get_attr: [scale_down_policy, signal_url] }
+
+  current_size:
+    description: Current number of instances
+    value: { get_attr: [auto_scaling_group, current_size] }
+
+  asg_summary:
+    description: Auto-Scaling Group summary
+    value:
+      str_replace:
+        template: |
+          ============================================
+          Auto-Scaling Group — Summary
+          ============================================
+          Min Size: MIN
+          Max Size: MAX
+          Desired:  DESIRED
+          Cooldown: COOLDOWN seconds
+          ============================================
+          Scale Up:   POST to scale_up_url
+          Scale Down: POST to scale_down_url
+          ============================================
+        params:
+          MIN: { get_param: min_size }
+          MAX: { get_param: max_size }
+          DESIRED: { get_param: desired_capacity }
+          COOLDOWN: { get_param: cooldown }

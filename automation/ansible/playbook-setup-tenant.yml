@@ -1,0 +1,117 @@
+---
+# ============================================================
+# Ansible Playbook — Setup Tenant (Project + User + Quotas)
+# ============================================================
+# Creates a new OpenStack project with user and custom quotas
+# Usage: ansible-playbook playbook-setup-tenant.yml
+# ============================================================
+- name: Setup OpenStack Tenant
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    os_cloud: "kolla-admin"
+    tenants:
+      - name: "production"
+        description: "Production environment"
+        user: "prod-admin"
+        password: "ProdSecure2026"
+        role: "admin"
+        quota_instances: 20
+        quota_cores: 40
+        quota_ram: 81920
+        quota_volumes: 50
+        quota_gigabytes: 500
+        quota_floating_ips: 10
+
+      - name: "staging"
+        description: "Staging/Testing environment"
+        user: "stage-admin"
+        password: "StageSecure2026"
+        role: "member"
+        quota_instances: 10
+        quota_cores: 20
+        quota_ram: 40960
+        quota_volumes: 20
+        quota_gigabytes: 200
+        quota_floating_ips: 5
+
+      - name: "development"
+        description: "Development environment"
+        user: "dev-user"
+        password: "DevSecure2026"
+        role: "member"
+        quota_instances: 5
+        quota_cores: 10
+        quota_ram: 20480
+        quota_volumes: 10
+        quota_gigabytes: 100
+        quota_floating_ips: 3
+
+  tasks:
+    - name: Create projects
+      openstack.cloud.project:
+        cloud: "{{ os_cloud }}"
+        name: "{{ item.name }}"
+        description: "{{ item.description }}"
+        domain_id: default
+        state: present
+      loop: "{{ tenants }}"
+
+    - name: Create users
+      openstack.cloud.identity_user:
+        cloud: "{{ os_cloud }}"
+        name: "{{ item.user }}"
+        password: "{{ item.password }}"
+        default_project: "{{ item.name }}"
+        domain: default
+        state: present
+      loop: "{{ tenants }}"
+
+    - name: Assign roles
+      openstack.cloud.role_assignment:
+        cloud: "{{ os_cloud }}"
+        user: "{{ item.user }}"
+        project: "{{ item.name }}"
+        role: "{{ item.role }}"
+        state: present
+      loop: "{{ tenants }}"
+
+    - name: Set compute quotas
+      ansible.builtin.command: >
+        openstack quota set
+        --instances {{ item.quota_instances }}
+        --cores {{ item.quota_cores }}
+        --ram {{ item.quota_ram }}
+        --floating-ips {{ item.quota_floating_ips }}
+        {{ item.name }}
+      loop: "{{ tenants }}"
+      environment:
+        OS_CLIENT_CONFIG_FILE: /etc/kolla/clouds.yaml
+        OS_CLOUD: "{{ os_cloud }}"
+
+    - name: Set volume quotas
+      ansible.builtin.command: >
+        openstack quota set
+        --volumes {{ item.quota_volumes }}
+        --gigabytes {{ item.quota_gigabytes }}
+        {{ item.name }}
+      loop: "{{ tenants }}"
+      environment:
+        OS_CLIENT_CONFIG_FILE: /etc/kolla/clouds.yaml
+        OS_CLOUD: "{{ os_cloud }}"
+
+    - name: Display tenant summary
+      ansible.builtin.debug:
+        msg: |
+          ============================================================
+          Tenant Setup Complete
+          ============================================================
+          {% for t in tenants %}
+          Project: {{ t.name }}
+            User: {{ t.user }} ({{ t.role }})
+            Quotas: {{ t.quota_instances }} instances, {{ t.quota_cores }} cores
+                    {{ t.quota_ram }}MB RAM, {{ t.quota_volumes }} volumes
+          {% endfor %}
+          ============================================================

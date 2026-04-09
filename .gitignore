@@ -1,0 +1,61 @@
+# .gitignore — OpenStack Private Cloud
+
+# ---- Credentials & Secrets ----
+*.tfvars
+!terraform.tfvars.example
+passwords.yml
+clouds.yaml
+openrc
+*.pem
+*.key
+id_rsa*
+
+# ---- Terraform ----
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+*.tfstate.*.backup
+crash.log
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+*.egg
+venv/
+kolla-venv/
+.venv/
+
+# ---- Docker ----
+docker-compose.override.yml
+
+# ---- Monitoring Data ----
+monitoring/prometheus_data/
+monitoring/grafana_data/
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ---- IDE ----
+.idea/
+.vscode/
+*.code-workspace
+
+# ---- Logs ----
+*.log
+logs/
+
+# ---- Images (keep placeholders) ----
+# docs/screenshots/*.png
+# !docs/screenshots/.gitkeep
+
+# ---- Temp ----
+tmp/
+temp/
+*.tmp

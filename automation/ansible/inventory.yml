@@ -1,0 +1,20 @@
+---
+# Ansible inventory for OpenStack automation
+all:
+  hosts:
+    localhost:
+      ansible_connection: local
+      ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  
+  vars:
+    # OpenStack connection
+    os_cloud: "kolla-admin"
+    os_config_file: "/etc/kolla/clouds.yaml"
+    
+    # Default values
+    default_image: "CirrOS-0.6.2"
+    default_flavor: "m1.small"
+    default_network: "internal-net"
+    default_external_network: "external-net"
+    default_security_group: "web-sg"
+    default_keypair: "default-keypair"

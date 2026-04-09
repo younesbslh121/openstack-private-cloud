@@ -1,0 +1,151 @@
+# ============================================================
+# Kolla-Ansible All-in-One Inventory
+# ============================================================
+# This inventory file defines a single-node OpenStack deployment
+# All services run on localhost
+# ============================================================
+
+[control]
+localhost ansible_connection=local
+
+[network]
+localhost ansible_connection=local
+
+[compute]
+localhost ansible_connection=local
+
+[storage]
+localhost ansible_connection=local
+
+[monitoring]
+localhost ansible_connection=local
+
+[deployment]
+localhost ansible_connection=local
+
+# ============================================================
+# Group mappings — DO NOT MODIFY
+# ============================================================
+
+[baremetal:children]
+control
+network
+compute
+storage
+monitoring
+
+[chrony-server:children]
+baremetal
+
+[chrony:children]
+baremetal
+
+[hacluster:children]
+control
+
+[hacluster-remote:children]
+compute
+
+[kolla-logs:children]
+control
+
+[kibana:children]
+control
+
+[elasticsearch:children]
+control
+
+[haproxy:children]
+network
+
+[mariadb:children]
+control
+
+[rabbitmq:children]
+control
+
+[keystone:children]
+control
+
+[glance:children]
+control
+
+[nova:children]
+control
+
+[neutron:children]
+network
+
+[cinder:children]
+control
+
+[memcached:children]
+control
+
+[horizon:children]
+control
+
+[heat:children]
+control
+
+[placement:children]
+control
+
+[nova-compute:children]
+compute
+
+[nova-libvirt:children]
+compute
+
+[nova-conductor:children]
+control
+
+[nova-novncproxy:children]
+control
+
+[nova-scheduler:children]
+control
+
+[nova-api:children]
+control
+
+[neutron-server:children]
+control
+
+[neutron-dhcp-agent:children]
+network
+
+[neutron-l3-agent:children]
+network
+
+[neutron-metadata-agent:children]
+network
+
+[neutron-openvswitch-agent:children]
+network
+compute
+
+[openvswitch:children]
+network
+compute
+
+[cinder-api:children]
+control
+
+[cinder-scheduler:children]
+control
+
+[cinder-volume:children]
+storage
+
+[cinder-backup:children]
+storage
+
+[heat-api:children]
+control
+
+[heat-api-cfn:children]
+control
+
+[heat-engine:children]
+control

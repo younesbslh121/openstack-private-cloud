@@ -1,0 +1,123 @@
+heat_template_version: 2021-04-16
+
+description: |
+  Deploy a single compute instance with floating IP
+  OpenStack Private Cloud — INPT
+  Usage: openstack stack create -t single-instance.yaml my-instance
+
+parameters:
+  image:
+    type: string
+    label: Image
+    description: OS image to use for the instance
+    default: CirrOS-0.6.2
+    constraints:
+      - custom_constraint: glance.image
+
+  flavor:
+    type: string
+    label: Flavor
+    description: Compute flavor for the instance
+    default: m1.small
+    constraints:
+      - custom_constraint: nova.flavor
+
+  network:
+    type: string
+    label: Network
+    description: Network to connect the instance to
+    default: internal-net
+    constraints:
+      - custom_constraint: neutron.network
+
+  external_network:
+    type: string
+    label: External Network
+    description: External network for floating IP
+    default: external-net
+
+  key_name:
+    type: string
+    label: SSH Key
+    description: SSH keypair name
+    default: default-keypair
+    constraints:
+      - custom_constraint: nova.keypair
+
+  security_group:
+    type: string
+    label: Security Group
+    description: Security group for the instance
+    default: web-sg
+
+resources:
+  # ---- Server Port ----
+  server_port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_param: network }
+      security_groups:
+        - { get_param: security_group }
+
+  # ---- Compute Instance ----
+  server:
+    type: OS::Nova::Server
+    properties:
+      name: heat-single-instance
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      networks:
+        - port: { get_resource: server_port }
+      metadata:
+        orchestration: heat
+        project: openstack-private-cloud
+        created_by: heat-template
+      user_data_format: RAW
+      user_data: |
+        #!/bin/bash
+        echo "============================================"
+        echo "  Instance provisioned by Heat Template"
+        echo "  OpenStack Private Cloud — INPT"
+        echo "============================================"
+        echo "Hostname: $(hostname)" > /tmp/heat-init.log
+        echo "Date: $(date)" >> /tmp/heat-init.log
+        echo "Instance initialized successfully!"
+
+  # ---- Floating IP ----
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: { get_param: external_network }
+
+  # ---- Associate Floating IP ----
+  floating_ip_association:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: floating_ip }
+      port_id: { get_resource: server_port }
+
+outputs:
+  instance_name:
+    description: Name of the instance
+    value: { get_attr: [server, name] }
+
+  instance_id:
+    description: ID of the instance
+    value: { get_resource: server }
+
+  private_ip:
+    description: Private IP address
+    value: { get_attr: [server, first_address] }
+
+  floating_ip:
+    description: Floating IP address
+    value: { get_attr: [floating_ip, floating_ip_address] }
+
+  ssh_command:
+    description: SSH command to connect
+    value:
+      str_replace:
+        template: "ssh -i ~/.ssh/openstack-key cirros@FLOATING_IP"
+        params:
+          FLOATING_IP: { get_attr: [floating_ip, floating_ip_address] }

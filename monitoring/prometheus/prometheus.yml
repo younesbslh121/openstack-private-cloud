@@ -1,0 +1,56 @@
+# ============================================================
+# Prometheus Configuration — OpenStack Private Cloud
+# ============================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+  external_labels:
+    monitor: 'openstack-private-cloud'
+    environment: 'production'
+
+# ============================================================
+# Scrape Configurations
+# ============================================================
+scrape_configs:
+
+  # ---- Prometheus Self-Monitoring ----
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: 'prometheus'
+
+  # ---- OpenStack Exporter ----
+  - job_name: 'openstack'
+    scrape_interval: 30s
+    scrape_timeout: 25s
+    static_configs:
+      - targets: ['openstack-exporter:9180']
+        labels:
+          cloud: 'private-cloud'
+          instance: 'openstack-exporter'
+
+  # ---- Node Exporter (Host Metrics) ----
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'openstack-host'
+
+  # ---- cAdvisor (Container Metrics) ----
+  - job_name: 'cadvisor'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          instance: 'docker-containers'
+
+  # ---- HAProxy Stats (if enabled) ----
+  # - job_name: 'haproxy'
+  #   static_configs:
+  #     - targets: ['192.168.56.250:1984']
+  #       labels:
+  #         instance: 'haproxy'

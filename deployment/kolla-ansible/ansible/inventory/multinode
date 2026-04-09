@@ -1,0 +1,88 @@
+# ============================================================
+# Kolla-Ansible Multinode Inventory (Template)
+# ============================================================
+# This inventory separates OpenStack roles across multiple nodes
+# Customize hostnames/IPs for your multi-node setup
+# ============================================================
+
+[control]
+controller01 ansible_host=192.168.56.10 ansible_user=ubuntu ansible_become=true
+
+[network]
+controller01 ansible_host=192.168.56.10 ansible_user=ubuntu ansible_become=true
+
+[compute]
+compute01    ansible_host=192.168.56.11 ansible_user=ubuntu ansible_become=true
+compute02    ansible_host=192.168.56.12 ansible_user=ubuntu ansible_become=true
+
+[storage]
+storage01    ansible_host=192.168.56.13 ansible_user=ubuntu ansible_become=true
+
+[monitoring]
+controller01 ansible_host=192.168.56.10 ansible_user=ubuntu ansible_become=true
+
+[deployment]
+localhost ansible_connection=local
+
+# ============================================================
+# Group mappings
+# ============================================================
+
+[baremetal:children]
+control
+network
+compute
+storage
+monitoring
+
+[chrony-server:children]
+baremetal
+
+[chrony:children]
+baremetal
+
+[haproxy:children]
+network
+
+[mariadb:children]
+control
+
+[rabbitmq:children]
+control
+
+[keystone:children]
+control
+
+[glance:children]
+control
+
+[nova:children]
+control
+
+[neutron:children]
+network
+
+[cinder:children]
+control
+
+[memcached:children]
+control
+
+[horizon:children]
+control
+
+[heat:children]
+control
+
+[placement:children]
+control
+
+[nova-compute:children]
+compute
+
+[nova-libvirt:children]
+compute
+
+[openvswitch:children]
+network
+compute
