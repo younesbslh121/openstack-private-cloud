@@ -87,11 +87,13 @@ fi
 log_info "RAM: ${TOTAL_RAM}GB ✓"
 
 # Check disk space
-FREE_DISK=$(df -BG / | awk 'NR==2{print $4}' | tr -d 'G')
-if [[ $FREE_DISK -lt 40 ]]; then
+FREE_DISK=$(df -BG --output=avail / | tail -1 | tr -d 'G ')
+
+if [[ "$FREE_DISK" -lt 40 ]]; then
     log_error "Insufficient disk space: ${FREE_DISK}GB free. Minimum 40GB required."
     exit 1
 fi
+
 log_info "Disk: ${FREE_DISK}GB free ✓"
 
 # Auto-detect network interfaces if defaults don't exist
