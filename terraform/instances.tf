@@ -16,13 +16,8 @@ data "template_file" "web_init" {
     echo "  OpenStack Private Cloud — Web Server Init"
     echo "============================================"
     
-    # Update system
-    apt-get update -y 2>/dev/null || yum update -y 2>/dev/null
-    
-    # Install Nginx (if Ubuntu/Debian available)
-    if command -v apt-get &>/dev/null; then
-      apt-get install -y nginx
-    fi
+    # CirrOS ne possède pas apt-get, on utilise le mini-outil intégré BusyBox
+    mkdir -p /var/www/html
     
     # Create a custom landing page
     HOSTNAME=$(hostname)
@@ -69,14 +64,15 @@ data "template_file" "web_init" {
         <h1>☁️ OpenStack Private Cloud</h1>
         <p>Deployed via <span class="badge">Kolla-Ansible</span> <span class="badge">Terraform</span></p>
         <p class="info">Instance provisioned by Terraform on OpenStack</p>
+        <p class="info">Serveur propulsé par BusyBox sur CirrOS (Econo-mode)</p>
         <p class="info">INPT — 2ème Année Cycle Ingénieur</p>
       </div>
     </body>
     </html>
     HTMLEOF
     
-    # Start web server
-    systemctl enable nginx 2>/dev/null && systemctl restart nginx 2>/dev/null
+    # Start ultra-light busybox web server on port 80
+    sudo busybox httpd -p 80 -h /var/www/html
     
     echo "Web server initialization complete!"
   EOT
@@ -118,18 +114,18 @@ resource "openstack_compute_floatingip_associate_v2" "web_fip_assoc" {
 }
 
 # ---- Block Storage Volume ----
-resource "openstack_blockstorage_volume_v3" "data_volume" {
-  name        = "web-data-volume"
-  size        = 10
-  description = "Persistent data volume for web servers"
+# resource "openstack_blockstorage_volume_v3" "data_volume" {
+#   name        = "web-data-volume"
+#   size        = 10
+#   description = "Persistent data volume for web servers"
 
-  metadata = {
-    managed_by = "terraform"
-    purpose    = "web-data"
-  }
-}
+#   metadata = {
+#     managed_by = "terraform"
+#     purpose    = "web-data"
+#   }
+# }
 
-resource "openstack_compute_volume_attach_v2" "data_vol_attach" {
-  instance_id = openstack_compute_instance_v2.web_servers[0].id
-  volume_id   = openstack_blockstorage_volume_v3.data_volume.id
-}
+# resource "openstack_compute_volume_attach_v2" "data_vol_attach" {
+#   instance_id = openstack_compute_instance_v2.web_servers[0].id
+#   volume_id   = openstack_blockstorage_volume_v3.data_volume.id
+# }

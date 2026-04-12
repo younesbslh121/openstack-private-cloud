@@ -157,7 +157,6 @@ sudo apt-get install -y \
     libffi-dev gcc libssl-dev libdbus-glib-1-dev \
     git curl wget jq \
     bridge-utils net-tools \
-    software-properties-common \
     ca-certificates gnupg lsb-release \
     lvm2 thin-provisioning-tools \
     sudo
@@ -339,7 +338,7 @@ log_info "Configuration files at $KOLLA_CONFIG ✓"
 # ============================================================
 log_step "Preparing Cinder LVM Backend"
 
-CINDER_IMG="/var/lib/cinder/cinder-volumes.img"
+CINDER_IMG="/home/cinder-volumes.img"
 CINDER_VG="cinder-volumes"
 
 if ! sudo vgs "$CINDER_VG" &>/dev/null; then

@@ -37,10 +37,10 @@ output "web_security_group_id" {
   value       = openstack_networking_secgroup_v2.web_sg.id
 }
 
-output "data_volume_id" {
-  description = "ID of the data volume"
-  value       = openstack_blockstorage_volume_v3.data_volume.id
-}
+# output "data_volume_id" {
+#   description = "ID of the data volume"
+#   value       = openstack_blockstorage_volume_v3.data_volume.id
+# }
 
 output "access_urls" {
   description = "URLs to access the web servers"

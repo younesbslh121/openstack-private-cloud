@@ -27,11 +27,13 @@ terraform {
 # ============================================================
 
 provider "openstack" {
-  auth_url    = var.auth_url
-  tenant_name = var.tenant_name
-  user_name   = var.user_name
-  password    = var.password
-  region      = var.region
+  auth_url            = var.auth_url
+  tenant_name         = var.tenant_name
+  user_name           = var.user_name
+  password            = var.password
+  region              = var.region
+  user_domain_name    = "Default"
+  project_domain_name = "Default"
 
   # Alternatively, use clouds.yaml:
   # cloud = "openstack"
