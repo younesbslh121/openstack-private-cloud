@@ -52,7 +52,7 @@ services:
 
   # ---- OpenStack Exporter ----
   openstack-exporter:
-    image: quay.io/infraly/openstack-exporter:latest
+    image: niedbalski/openstack-exporter:latest
     container_name: openstack-exporter
     ports:
       - "9180:9180"

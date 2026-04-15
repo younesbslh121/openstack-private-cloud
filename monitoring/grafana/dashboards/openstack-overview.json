@@ -212,7 +212,7 @@
       "title": "Total Instances",
       "type": "stat",
       "targets": [
-        { "expr": "openstack_nova_total_running_instances", "legendFormat": "Running" }
+        { "expr": "openstack_nova_total_vms", "legendFormat": "Running" }
       ]
     },
     {
@@ -229,7 +229,7 @@
       "title": "Total vCPUs Used",
       "type": "stat",
       "targets": [
-        { "expr": "openstack_nova_total_used_vcpus", "legendFormat": "vCPUs" }
+        { "expr": "sum(openstack_nova_limits_vcpus_used)", "legendFormat": "vCPUs" }
       ]
     },
     {
@@ -246,7 +246,7 @@
       "title": "Total RAM Used",
       "type": "stat",
       "targets": [
-        { "expr": "openstack_nova_total_used_ram_mb", "legendFormat": "RAM (MB)" }
+        { "expr": "sum(openstack_nova_limits_memory_used)", "legendFormat": "RAM (MB)" }
       ]
     },
     {
@@ -263,7 +263,7 @@
       "title": "Total Disk Used",
       "type": "stat",
       "targets": [
-        { "expr": "openstack_nova_total_used_disk_gb", "legendFormat": "Disk (GB)" }
+        { "expr": "sum(openstack_nova_server_local_gb)", "legendFormat": "Disk (GB)" }
       ]
     },
     {
