@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://cdn.jsdelivr.net/npm/@thesvg/icons/icons/openstack.svg" alt="OpenStack Logo" width="300"/>
+  <img src="https://object-storage-ca-ymq-1.vexxhost.net/swift/v1/6e4619c416ff4bd19e1c087f27a43eea/www-images-prod/openstack-logo/2016R/OpenStack-Logo-Horizontal.SVG" alt="OpenStack Logo" width="300"/>
 </p>
 
 <h1 align="center">☁️ Private Cloud OpenStack — Kolla-Ansible</h1>
