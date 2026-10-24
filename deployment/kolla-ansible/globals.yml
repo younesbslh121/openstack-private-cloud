@@ -1,7 +1,7 @@
 ---
 # Kolla-Ansible Global Configuration
 # OpenStack Private Cloud — Production-Grade Deployment
-# =============================================================
+# ===========================================================
 
 # Base distribution for container images
 # Options: centos, debian, rocky, ubuntu
