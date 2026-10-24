@@ -247,32 +247,8 @@ docker-compose up -d
 - Keystone — Token count, project count
 - Glance — Image count, total size
 
----
 
-## 📸 Screenshots
 
-<details>
-<summary>🖼️ Click to expand screenshots</summary>
-
-### Horizon Dashboard
-> ![Horizon Dashboard](docs/screenshots/horizon-dashboard.png)
-
-### Running Instances
-> ![Instances](docs/screenshots/horizon-instances.png)
-
-### Network Topology
-> ![Network Topology](docs/screenshots/horizon-network-topology.png)
-
-### CLI Output
-> ![CLI](docs/screenshots/cli-server-list.png)
-
-### Grafana Monitoring
-> ![Grafana](docs/screenshots/grafana-monitoring.png)
-
-### Terraform Apply
-> ![Terraform](docs/screenshots/terraform-apply.png)
-
-</details>
 
 ---
 
