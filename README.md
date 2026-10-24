@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="main/openstack.jpg" alt="OpenStack Logo" width="300"/>
+  <img src="[main/openstack.jpg](https://cdn.jsdelivr.net/npm/@thesvg/icons/icons/openstack.svg)" alt="OpenStack Logo" width="300"/>
 </p>
 
 <h1 align="center">☁️ Private Cloud OpenStack — Kolla-Ansible</h1>
